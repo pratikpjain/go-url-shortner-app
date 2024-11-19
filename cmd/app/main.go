@@ -1,19 +1,34 @@
 package main
 
 import (
+	"errors"
+	"fmt"
+	"log"
+	"net/http"
+
 	"github.com/pratikpjain/go-url-shortner-app/internal/config"
 	"github.com/pratikpjain/go-url-shortner-app/internal/database"
+	"github.com/pratikpjain/go-url-shortner-app/internal/routes"
 )
 
 func main() {
 
-	_ = config.LoadConfig()
+	// Load environment variables
+	config := config.LoadConfig()
 
-	// database connection
-	db, err := database.ConnectDB()
+	// Connect to database
+	database.ConnectDB()
+	log.Println("Successfully connected to MySQL database")
+	// Close database
+	defer database.CloseDB()
+
+	// Run server
+	router := routes.SetupRoutes(database.DB)
+
+	err := http.ListenAndServe(fmt.Sprintf(":%s", config.AppPort), router)
 	if err != nil {
-		panic(err)
+		log.Fatal(errors.New("failed to start server: " + err.Error()))
 	}
-	defer db.Close()
+	log.Println("Server is running on port: ", config.AppPort)
 
 }

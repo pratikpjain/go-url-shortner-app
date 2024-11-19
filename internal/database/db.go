@@ -1,14 +1,18 @@
 package database
 
 import (
-	"database/sql"
+	"errors"
 	"fmt"
 
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/pratikpjain/go-url-shortner-app/internal/models"
 	"github.com/spf13/viper"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 )
 
-func ConnectDB() (*sql.DB, error) {
+var DB *gorm.DB
+
+func ConnectDB() {
 	// Construct DSN (Data Source Name)
 	dsn := fmt.Sprintf(
 		"%s:%s@tcp(%s:%s)/%s?parseTime=true&charset=utf8mb4,utf8",
@@ -18,17 +22,24 @@ func ConnectDB() (*sql.DB, error) {
 		viper.GetString("DB_PORT"),
 		viper.GetString("DB_NAME"),
 	)
-	// Open the connection
-	db, err := sql.Open("mysql", dsn)
+
+	var err error
+	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-
-	// Test the connection
-	if err := db.Ping(); err != nil {
-		return nil, err
+	err = DB.AutoMigrate(&models.LongURL{}, &models.ShortenedURL{}, &models.ShortUrlMetadata{})
+	if err != nil {
+		panic(errors.New("failed to migrate database: " + err.Error()))
 	}
-
 	fmt.Println("Successfully connected to MySQL database")
-	return db, nil
+
+}
+
+func CloseDB() {
+	dbSQL, err := DB.DB()
+	if err != nil {
+		panic(err)
+	}
+	dbSQL.Close()
 }
