@@ -1,11 +1,10 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"log"
-	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/pratikpjain/go-url-shortner-app/internal/config"
 	"github.com/pratikpjain/go-url-shortner-app/internal/database"
 	"github.com/pratikpjain/go-url-shortner-app/internal/routes"
@@ -18,17 +17,16 @@ func main() {
 
 	// Connect to database
 	database.ConnectDB()
-	log.Println("Successfully connected to MySQL database")
-	// Close database
 	defer database.CloseDB()
+	log.Println("Successfully connected to MySQL database")
 
-	// Run server
-	router := routes.SetupRoutes(database.DB)
+	// Setup routes
+	router := gin.Default()
+	routes.RegisterRoutes(router, database.DB)
+	log.Println("Successfully registered routes")
 
-	err := http.ListenAndServe(fmt.Sprintf(":%s", config.AppPort), router)
-	if err != nil {
-		log.Fatal(errors.New("failed to start server: " + err.Error()))
-	}
+	// Start server
+	router.Run(fmt.Sprintf(":%s", config.AppPort))
 	log.Println("Server is running on port: ", config.AppPort)
 
 }

@@ -3,17 +3,24 @@ package routes
 import (
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
+	"github.com/pratikpjain/go-url-shortner-app/internal/controller"
 	"gorm.io/gorm"
 )
 
-func SetupRoutes(db *gorm.DB) *mux.Router {
-	router := mux.NewRouter()
+func RegisterRoutes(router *gin.Engine, db *gorm.DB) {
 
-	router.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("OK"))
-	}).Methods("GET")
+	router.GET("/health-check", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "OK",
+		})
+	})
+	apiV1 := router.Group("/api/v1")
 
-	return router
+	shortenedUrlHandler := controller.NewUrlShortnerController()
+
+	apiV1.POST("/shorten-url", shortenedUrlHandler.GenerateShortURL)
+
+	router.GET("/url/:short_url", shortenedUrlHandler.RedirectToLongUrl)
+
 }
